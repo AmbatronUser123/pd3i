@@ -1,0 +1,13 @@
+node_modules/
+.env
+build/
+dist/
+.DS_Store
+*.log
+*.suo
+*.user
+*.bak
+*.ilk
+*.meta
+.vscode/
+node_modules
