@@ -21,6 +21,7 @@ import {
   Wifi,
   WifiOff
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface DashboardPageProps {
   user: User;
@@ -96,6 +97,80 @@ const shortcuts = [
 ];
 
 export function DashboardPage({ user, onNavigate, onLogout, isOnline }: DashboardPageProps) {
+  const [weeklyStats, setWeeklyStats] = useState({
+    newCases: 0,
+    underMonitoring: 0,
+    needsFollowUp: 0
+  });
+
+  useEffect(() => {
+    const loadWeeklyStats = () => {
+      try {
+        const localCasesRaw = localStorage.getItem('spasi_cases');
+        if (!localCasesRaw) return;
+        
+        const localCases = JSON.parse(localCasesRaw) || [];
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay()); // Start of current week (Sunday)
+        
+        const weeklyCases = localCases.filter((c: any) => {
+          const caseDate = new Date(c.submitted_at || c.last_modified || c.created_at);
+          return caseDate >= startOfWeek;
+        });
+
+        const stats = weeklyCases.reduce((acc: any, c: any) => {
+          if (c.status === 'submitted') acc.underMonitoring++;
+          if (c.status === 'completed') acc.newCases++;
+          if (c.needs_follow_up) acc.needsFollowUp++;
+          return acc;
+        }, { newCases: 0, underMonitoring: 0, needsFollowUp: 0 });
+
+        setWeeklyStats(stats);
+      } catch (error) {
+        console.error('Error loading weekly stats:', error);
+      }
+    };
+
+    loadWeeklyStats();
+    
+    const loadFromSupabase = async () => {
+      if (!isOnline) return;
+      
+      try {
+        const { kasusMR01Operations } = await import('../utils/supabase/client');
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        
+        const rows = await kasusMR01Operations.getByUser(user.id);
+        if (!rows) return;
+        
+        const weeklyCases = rows.filter((r: any) => {
+          const caseDate = new Date(r.updated_at || r.created_at);
+          return caseDate >= startOfWeek;
+        });
+
+        const stats = weeklyCases.reduce((acc: any, r: any) => {
+          if (r.status === 'submitted') acc.underMonitoring++;
+          if (r.status === 'completed') acc.newCases++;
+          if (r.needs_follow_up) acc.needsFollowUp++;
+          return acc;
+        }, { newCases: 0, underMonitoring: 0, needsFollowUp: 0 });
+
+        setWeeklyStats(prev => ({
+          newCases: Math.max(prev.newCases, stats.newCases),
+          underMonitoring: Math.max(prev.underMonitoring, stats.underMonitoring),
+          needsFollowUp: Math.max(prev.needsFollowUp, stats.needsFollowUp)
+        }));
+      } catch (error) {
+        console.error('Error loading weekly stats from Supabase:', error);
+      }
+    };
+
+    loadFromSupabase();
+  }, [user.id, isOnline]);
+
   const handleDiseaseClick = (diseaseId: string) => {
     onNavigate('disease-submenu', { disease: diseaseId });
   };
@@ -236,21 +311,21 @@ export function DashboardPage({ user, onNavigate, onLogout, isOnline }: Dashboar
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                   <Activity className="w-5 h-5 text-blue-600" />
                 </div>
-                <div className="text-2xl font-bold text-primary">12</div>
+                <div className="text-2xl font-bold text-primary">{weeklyStats.newCases}</div>
                 <div className="text-xs text-muted-foreground">Kasus Baru</div>
               </div>
               <div>
                 <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                   <Users className="w-5 h-5 text-orange-600" />
                 </div>
-                <div className="text-2xl font-bold text-accent">8</div>
+                <div className="text-2xl font-bold text-accent">{weeklyStats.underMonitoring}</div>
                 <div className="text-xs text-muted-foreground">Dalam Pengawasan</div>
               </div>
               <div>
                 <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
                 </div>
-                <div className="text-2xl font-bold text-secondary">3</div>
+                <div className="text-2xl font-bold text-secondary">{weeklyStats.needsFollowUp}</div>
                 <div className="text-xs text-muted-foreground">Perlu Tindak Lanjut</div>
               </div>
             </div>

@@ -57,8 +57,35 @@ export const kabupatenOptions = [
 ];
 
 export const kecamatanOptions = [
-  'Menteng', 'Tanah Abang', 'Gambir', 'Sawah Besar', 'Kemayoran',
-  'Senen', 'Cempaka Putih', 'Johar Baru', 'Kelapa Gading', 'Tanjung Priok'
+  'Anyar',
+  'Bandung',
+  'Baros',
+  'Binuang',
+  'Bojonegara',
+  'Carenang',
+  'Cikande',
+  'Cikeusal',
+  'Cinangka',
+  'Ciomas',
+  'Ciruas',
+  'Gunungsari',
+  'Jawilan',
+  'Kibin',
+  'Kopo',
+  'Kragilan',
+  'Kramatwatu',
+  'Lebak Wangi',
+  'Mancak',
+  'Pabuaran',
+  'Padarincang',
+  'Pamarayan',
+  'Petir',
+  'Pontang',
+  'Pulo Ampel',
+  'Tanara',
+  'Tirtayasa',
+  'Tunjung Teja',
+  'Waringinkurung'
 ];
 
 export const sumberInfoOptions = [

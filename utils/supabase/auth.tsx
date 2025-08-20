@@ -6,6 +6,7 @@ import { toast } from 'sonner';
  */
 export async function signIn(email: string, password: string) {
   try {
+    // Sign in the user
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -17,7 +18,24 @@ export async function signIn(email: string, password: string) {
       return null;
     }
 
-    return data.user;
+    // Fetch the user's profile data
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('username, puskesmas, location')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      // Don't fail login if profile fetch fails, just log it
+    }
+
+    return {
+      ...data.user,
+      username: profileData?.username || null,
+      puskesmas: profileData?.puskesmas || null,
+      location: profileData?.location || null
+    };
   } catch (error: any) {
     console.error('Unexpected error during sign in:', error);
     toast.error(`Unexpected error: ${error.message}`);
@@ -51,34 +69,34 @@ export async function signUp(
 
     if (error) {
       console.error('Error signing up:', error);
-      toast.error(`Registration failed: ${error.message}`);
+      toast.error(`Registrasi gagal: ${error.message}`);
       return null;
     }
 
-    // Create the user profile
+    // Create the user profile in the profiles table
     if (data.user) {
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert([
+        .upsert([
           {
             id: data.user.id,
             username,
             puskesmas,
             location,
-          },
+            updated_at: new Date().toISOString()
+          }
         ]);
 
       if (profileError) {
         console.error('Error creating profile:', profileError);
-        toast.error(`Profile creation failed: ${profileError.message}`);
-        // Continue anyway as the auth user was created
+        toast.warning('Akun berhasil dibuat, tetapi ada masalah dengan penyimpanan profil. Silakan hubungi admin.');
       }
     }
 
     return data.user;
   } catch (error: any) {
     console.error('Unexpected error during sign up:', error);
-    toast.error(`Unexpected error: ${error.message}`);
+    toast.error(`Terjadi kesalahan: ${error.message}`);
     return null;
   }
 }

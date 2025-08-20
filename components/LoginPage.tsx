@@ -21,6 +21,11 @@ export function LoginPage({ onLogin, onRegister, onTestConnection }: LoginPagePr
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      toast.error('Email dan password harus diisi');
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -30,15 +35,15 @@ export function LoginPage({ onLogin, onRegister, onTestConnection }: LoginPagePr
         const user: User = {
           id: authUser.id,
           username: authUser.username || email.split('@')[0],
-          puskesmas: authUser.puskesmas || 'Default Puskesmas',
-          location: authUser.location || 'Default Location'
+          puskesmas: authUser.puskesmas || null,
+          location: authUser.location || null
         };
         onLogin(user);
-        toast.success('Login successful!');
+        toast.success('Login berhasil!');
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Failed to login. Please check your credentials.');
+      toast.error('Gagal login. Periksa kembali email dan password Anda.');
     } finally {
       setIsLoading(false);
     }

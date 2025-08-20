@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -19,7 +19,7 @@ import {
   Wifi,
   WifiOff
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
 interface WeeklyReportPageProps {
   user: User;
@@ -27,47 +27,131 @@ interface WeeklyReportPageProps {
   isOnline: boolean;
 }
 
-const diseases = [
-  { id: 'all', name: 'Semua Penyakit' },
-  { id: 'campak-rubela', name: 'Campak-Rubela' },
-  { id: 'difteri', name: 'Difteri' },
-  { id: 'pertusis', name: 'Pertusis' },
-  { id: 'tetanus', name: 'Tetanus' },
-  { id: 'polio', name: 'Polio' },
-  { id: 'hepatitis', name: 'Hepatitis' },
-];
+interface CaseData {
+  id: string;
+  disease: string;
+  form: string;
+  status: string;
+  submissionDate: string;
+  formData: any;
+  synced: boolean;
+}
 
-const weeks = [
-  { id: 'week-1', name: 'Minggu 1 (1-7 Jan 2024)' },
-  { id: 'week-2', name: 'Minggu 2 (8-14 Jan 2024)' },
-  { id: 'week-3', name: 'Minggu 3 (15-21 Jan 2024)' },
-  { id: 'week-4', name: 'Minggu 4 (22-28 Jan 2024)' },
-];
+// Define a type for the disease names
+type DiseaseType = 'campak-rubela' | 'difteri' | 'pertusis' | 'tetanus' | 'polio' | 'hepatitis';
 
-const mockChartData = [
-  { name: 'Minggu 1', cases: 12, deaths: 0, recovered: 10 },
-  { name: 'Minggu 2', cases: 8, deaths: 1, recovered: 9 },
-  { name: 'Minggu 3', cases: 15, deaths: 0, recovered: 12 },
-  { name: 'Minggu 4', cases: 6, deaths: 0, recovered: 14 },
-];
-
-const mockDiseaseData = [
-  { name: 'Campak-Rubela', cases: 15, color: '#FF6B6B' },
-  { name: 'Difteri', cases: 8, color: '#4ECDC4' },
-  { name: 'Pertusis', cases: 12, color: '#45B7D1' },
-  { name: 'Tetanus', cases: 3, color: '#96CEB4' },
-  { name: 'Polio', cases: 1, color: '#FFEAA7' },
-  { name: 'Hepatitis', cases: 2, color: '#DDA0DD' },
-];
+const diseaseNames: Record<DiseaseType, string> = {
+  'campak-rubela': 'Campak-Rubela',
+  'difteri': 'Difteri',
+  'pertusis': 'Pertusis',
+  'tetanus': 'Tetanus',
+  'polio': 'Polio',
+  'hepatitis': 'Hepatitis',
+};
 
 export function WeeklyReportPage({ user, onBack, isOnline }: WeeklyReportPageProps) {
   const [selectedDisease, setSelectedDisease] = useState('all');
   const [selectedWeek, setSelectedWeek] = useState('week-4');
+  const [cases, setCases] = useState<CaseData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const totalCases = mockChartData.reduce((sum, item) => sum + item.cases, 0);
-  const totalDeaths = mockChartData.reduce((sum, item) => sum + item.deaths, 0);
-  const totalRecovered = mockChartData.reduce((sum, item) => sum + item.recovered, 0);
+  // Get cases from localStorage
+  useEffect(() => {
+    const loadCases = () => {
+      const localCasesRaw = localStorage.getItem('spasi_cases');
+      let localCases: CaseData[] = [];
+      
+      if (localCasesRaw) {
+        try {
+          localCases = JSON.parse(localCasesRaw);
+        } catch (e) {
+          console.error('Error parsing cases from localStorage:', e);
+        }
+      }
+      
+      // Filter only submitted/completed cases
+      const filteredCases = localCases.filter(c => 
+        (c.status === 'submitted' || c.status === 'completed')
+      );
+      
+      setCases(filteredCases);
+      setIsLoading(false);
+    };
+    
+    loadCases();
+    
+    // Listen for storage changes to update in real-time
+    const handleStorageChange = () => loadCases();
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Process data for charts and statistics
+  const processData = () => {
+    // Group cases by week
+    const weeklyData: Record<string, { cases: number; deaths: number; recovered: number }> = {};
+    const diseaseData: Record<string, number> = {};
+    
+    cases.forEach(c => {
+      if (!c.submissionDate) return;
+      
+      // Get week number from submission date
+      const date = new Date(c.submissionDate);
+      const weekNum = Math.ceil(date.getDate() / 7);
+      const weekKey = `Minggu ${weekNum}`;
+      
+      // Initialize week data if not exists
+      if (!weeklyData[weekKey]) {
+        weeklyData[weekKey] = { cases: 0, deaths: 0, recovered: 0 };
+      }
+      
+      // Count cases
+      weeklyData[weekKey].cases++;
+      
+      // Count by disease
+      if (c.disease) {
+        const diseaseName = c.disease in diseaseNames 
+          ? diseaseNames[c.disease as DiseaseType] 
+          : c.disease;
+        diseaseData[diseaseName] = (diseaseData[diseaseName] || 0) + 1;
+      }
+    });
+    
+    // Convert to array for charts
+    const chartData = Object.entries(weeklyData).map(([name, data]) => ({
+      name,
+      ...data
+    }));
+    
+    const diseaseChartData = Object.entries(diseaseData).map(([name, cases]) => ({
+      name,
+      cases,
+      color: getRandomColor()
+    }));
+    
+    return { chartData, diseaseChartData };
+  };
+  
+  const { chartData, diseaseChartData } = processData();
+  
+  const totalCases = cases.length;
+  const totalDeaths = 0; // Update this if you track deaths
+  const totalRecovered = cases.filter(c => c.status === 'completed').length;
   const klbStatus = totalCases > 20 ? 'KLB' : 'Normal';
+  
+  // Helper function to generate random colors for the chart
+  const getRandomColor = () => {
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Memuat data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -98,200 +182,143 @@ export function WeeklyReportPage({ user, onBack, isOnline }: WeeklyReportPagePro
             {/* Status Card */}
             <div className="rounded-xl shadow-md p-4 border border-transparent bg-[#C8E6C9] flex items-center gap-3 mb-4">
               {isOnline ? <Wifi className="w-5 h-5 text-[#4CAF50]" /> : <WifiOff className="w-5 h-5 text-red-500" />}
-              <span className="text-sm text-black">Status: {isOnline ? 'Online – Data akan tersinkron otomatis' : 'Offline – Data tersimpan lokal'}</span>
-            </div>
-
-            {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="weekly-disease" className="block text-sm font-medium mb-2">Penyakit</label>
-                <Select value={selectedDisease} onValueChange={setSelectedDisease}>
-                  <SelectTrigger id="weekly-disease" aria-labelledby="weekly-disease">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {diseases.map(disease => (
-                      <SelectItem key={disease.id} value={disease.id}>
-                        {disease.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label htmlFor="weekly-periode" className="block text-sm font-medium mb-2">Periode</label>
-                <Select value={selectedWeek} onValueChange={setSelectedWeek}>
-                  <SelectTrigger id="weekly-periode" aria-labelledby="weekly-periode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {weeks.map(week => (
-                      <SelectItem key={week.id} value={week.id}>
-                        {week.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <span className="text-sm font-medium">
+                {isOnline ? 'Terhubung ke server' : 'Mode offline - Data disimpan secara lokal'}
+              </span>
             </div>
           </div>
         </div>
 
+        {/* Main Content */}
         <div className="p-4 space-y-6">
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-4 text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <Activity className="w-6 h-6 text-blue-600" />
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="bg-white">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Kasus</p>
+                    <p className="text-2xl font-bold">{totalCases}</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-blue-100">
+                    <Activity className="w-6 h-6 text-blue-600" />
+                  </div>
                 </div>
-                <div className="text-2xl font-bold text-blue-600">{totalCases}</div>
-                <div className="text-xs text-muted-foreground">Total Kasus</div>
               </CardContent>
             </Card>
 
-            <Card className="bg-red-50 border-red-200">
-              <CardContent className="p-4 text-center">
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <TrendingDown className="w-6 h-6 text-red-600" />
+            <Card className="bg-white">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Sembuh</p>
+                    <p className="text-2xl font-bold text-green-600">{totalRecovered}</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-green-100">
+                    <Heart className="w-6 h-6 text-green-600" />
+                  </div>
                 </div>
-                <div className="text-2xl font-bold text-red-600">{totalDeaths}</div>
-                <div className="text-xs text-muted-foreground">Meninggal</div>
               </CardContent>
             </Card>
 
-            <Card className="bg-green-50 border-green-200">
-              <CardContent className="p-4 text-center">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <Heart className="w-6 h-6 text-green-600" />
+            <Card className="bg-white">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status KLB</p>
+                    <p className="text-2xl font-bold">
+                      <span className={klbStatus === 'KLB' ? 'text-red-600' : 'text-green-600'}>
+                        {klbStatus}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-full bg-yellow-100">
+                    <AlertTriangle className="w-6 h-6 text-yellow-600" />
+                  </div>
                 </div>
-                <div className="text-2xl font-bold text-green-600">{totalRecovered}</div>
-                <div className="text-xs text-muted-foreground">Sembuh</div>
               </CardContent>
             </Card>
 
-            <Card className={klbStatus === 'KLB' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}>
-              <CardContent className="p-4 text-center">
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2 ${
-                  klbStatus === 'KLB' ? 'bg-red-100' : 'bg-green-100'
-                }`}>
-                  <AlertTriangle className={`w-6 h-6 ${
-                    klbStatus === 'KLB' ? 'text-red-600' : 'text-green-600'
-                  }`} />
+            <Card className="bg-white">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Puskesmas</p>
+                    <p className="text-lg font-medium">{user.puskesmas}</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-purple-100">
+                    <Building2 className="w-6 h-6 text-purple-600" />
+                  </div>
                 </div>
-                <div className={`text-2xl font-bold ${
-                  klbStatus === 'KLB' ? 'text-red-600' : 'text-green-600'
-                }`}>
-                  {klbStatus}
-                </div>
-                <div className="text-xs text-muted-foreground">Status KLB</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Trend Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Tren Kasus Mingguan
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={mockChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line 
-                    type="monotone" 
-                    dataKey="cases" 
-                    stroke="#4CAF50" 
-                    strokeWidth={3}
-                    name="Kasus Baru"
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="recovered" 
-                    stroke="#2196F3" 
-                    strokeWidth={3}
-                    name="Sembuh"
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="deaths" 
-                    stroke="#F44336" 
-                    strokeWidth={3}
-                    name="Meninggal"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Disease Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="w-5 h-5" />
-                Distribusi Penyakit
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={mockDiseaseData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="cases" fill="#4CAF50" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Weekly Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Detail Mingguan
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockChartData.map((week, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
-                    <div>
-                      <h4 className="font-medium flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        {week.name}
-                      </h4>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {week.cases} kasus baru • {week.recovered} sembuh • {week.deaths} meninggal
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-primary">{week.cases}</div>
-                      <div className="text-xs text-muted-foreground">Kasus</div>
-                    </div>
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Cases Over Time */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-semibold">Kasus per Minggu</CardTitle>
+              </CardHeader>
+              <CardContent className="h-64">
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line 
+                        type="monotone" 
+                        dataKey="cases" 
+                        name="Kasus"
+                        stroke="#4F46E5" 
+                        strokeWidth={2} 
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6 }} 
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    Tidak ada data kasus untuk ditampilkan
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Action Buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button variant="outline" className="spasi-button-secondary">
-              <FileDown className="w-4 h-4 mr-2" />
-              Ekspor Laporan
-            </Button>
-            <Button className="spasi-button">
-              <Send className="w-4 h-4 mr-2" />
-              Kirim ke Dinkes
-            </Button>
+            {/* Cases by Disease */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-semibold">Kasus per Penyakit</CardTitle>
+              </CardHeader>
+              <CardContent className="h-64">
+                {diseaseChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={diseaseChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar 
+                        dataKey="cases" 
+                        name="Kasus"
+                        radius={[4, 4, 0, 0]}
+                      >
+                        {diseaseChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    Tidak ada data penyakit untuk ditampilkan
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

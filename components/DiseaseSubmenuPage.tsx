@@ -18,6 +18,7 @@ import {
   Wifi,
   WifiOff
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface DiseaseSubmenuPageProps {
   disease: string;
@@ -89,6 +90,78 @@ const forms = [
 ];
 
 export function DiseaseSubmenuPage({ disease, onNavigate, onBack, isOnline, user, onLogout }: DiseaseSubmenuPageProps) {
+  const [stats, setStats] = useState({
+    totalCases: 0,
+    thisWeek: 0,
+    pending: 0
+  });
+
+  // Load statistics for the selected disease
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        // Load from localStorage
+        const localCasesRaw = localStorage.getItem('spasi_cases');
+        let localCases: any[] = [];
+        
+        if (localCasesRaw) {
+          try {
+            localCases = JSON.parse(localCasesRaw).filter((c: any) => c.disease === disease) || [];
+          } catch (e) {
+            console.error('Error parsing local cases:', e);
+          }
+        }
+
+        // Filter cases for current week
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        
+        const weeklyCases = localCases.filter((c: any) => {
+          const caseDate = new Date(c.submitted_at || c.last_modified || c.created_at);
+          return caseDate >= startOfWeek;
+        });
+
+        // Calculate stats
+        const newStats = {
+          totalCases: localCases.length,
+          thisWeek: weeklyCases.length,
+          pending: localCases.filter((c: any) => c.status === 'draft').length
+        };
+
+        setStats(newStats);
+
+        // If online, also load from Supabase
+        if (isOnline) {
+          try {
+            const { kasusMR01Operations } = await import('../utils/supabase/client');
+            const rows = await kasusMR01Operations.getByUser(user.id);
+            
+            if (rows) {
+              const diseaseCases = rows.filter((r: any) => r.disease === disease);
+              const weeklyDiseaseCases = diseaseCases.filter((r: any) => {
+                const caseDate = new Date(r.updated_at || r.created_at);
+                return caseDate >= startOfWeek;
+              });
+
+              setStats({
+                totalCases: diseaseCases.length,
+                thisWeek: weeklyDiseaseCases.length,
+                pending: diseaseCases.filter((r: any) => r.status === 'draft').length
+              });
+            }
+          } catch (error) {
+            console.error('Error loading stats from Supabase:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    };
+
+    loadStats();
+  }, [disease, user.id, isOnline]);
+
   const handleFormClick = (formId: string) => {
     onNavigate('resume-kasus', { disease, form: formId });
   };
@@ -195,6 +268,36 @@ export function DiseaseSubmenuPage({ disease, onNavigate, onBack, isOnline, user
               </Card>
             ))}
           </div>
+
+          {/* Disease Stats - Only show for Campak-Rubela */}
+          {disease === 'campak-rubela' && (
+            <div className="mt-6 bg-card border border-border rounded-lg p-4">
+              <h3 className="font-medium mb-3 flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Statistik Campak-Rubela
+              </h3>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <span className="text-blue-600 font-bold">{stats.totalCases}</span>
+                  </div>
+                  <div className="text-sm font-medium">Total Kasus</div>
+                </div>
+                <div>
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <span className="text-green-600 font-bold">{stats.thisWeek}</span>
+                  </div>
+                  <div className="text-sm font-medium">Minggu Ini</div>
+                </div>
+                <div>
+                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <span className="text-yellow-600 font-bold">{stats.pending}</span>
+                  </div>
+                  <div className="text-sm font-medium">Menunggu</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Quick Stats */}
           <div className="mt-6 bg-card border border-border rounded-lg p-4">
