@@ -44,7 +44,7 @@ export function WeeklyReportPage({ user, onBack, isOnline }: WeeklyReportPagePro
         try {
           localCases = JSON.parse(localCasesRaw);
         } catch (e) {
-          console.error('Error parsing cases from localStorage:', e);
+          // Error parsing cases from localStorage
         }
       }
       
