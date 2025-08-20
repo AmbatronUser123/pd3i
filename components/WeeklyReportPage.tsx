@@ -1,23 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { User } from '../App';
 import { 
-  ArrowLeft, 
-  TrendingUp, 
-  TrendingDown, 
-  Calendar,
-  AlertTriangle,
-  Activity,
+  ArrowLeft,
   BarChart3,
-  FileDown,
-  Send,
   Building2,
-  Heart,
-  PieChart,
   Wifi,
-  WifiOff
+  WifiOff,
+  Activity,
+  Heart,
+  AlertTriangle
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
@@ -37,21 +30,7 @@ interface CaseData {
   synced: boolean;
 }
 
-// Define a type for the disease names
-type DiseaseType = 'campak-rubela' | 'difteri' | 'pertusis' | 'tetanus' | 'polio' | 'hepatitis';
-
-const diseaseNames: Record<DiseaseType, string> = {
-  'campak-rubela': 'Campak-Rubela',
-  'difteri': 'Difteri',
-  'pertusis': 'Pertusis',
-  'tetanus': 'Tetanus',
-  'polio': 'Polio',
-  'hepatitis': 'Hepatitis',
-};
-
 export function WeeklyReportPage({ user, onBack, isOnline }: WeeklyReportPageProps) {
-  const [selectedDisease, setSelectedDisease] = useState('all');
-  const [selectedWeek, setSelectedWeek] = useState('week-4');
   const [cases, setCases] = useState<CaseData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -110,9 +89,7 @@ export function WeeklyReportPage({ user, onBack, isOnline }: WeeklyReportPagePro
       
       // Count by disease
       if (c.disease) {
-        const diseaseName = c.disease in diseaseNames 
-          ? diseaseNames[c.disease as DiseaseType] 
-          : c.disease;
+        const diseaseName = c.disease;
         diseaseData[diseaseName] = (diseaseData[diseaseName] || 0) + 1;
       }
     });
@@ -135,10 +112,9 @@ export function WeeklyReportPage({ user, onBack, isOnline }: WeeklyReportPagePro
   const { chartData, diseaseChartData } = processData();
   
   const totalCases = cases.length;
-  const totalDeaths = 0; // Update this if you track deaths
   const totalRecovered = cases.filter(c => c.status === 'completed').length;
   const klbStatus = totalCases > 20 ? 'KLB' : 'Normal';
-  
+
   // Helper function to generate random colors for the chart
   const getRandomColor = () => {
     const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
