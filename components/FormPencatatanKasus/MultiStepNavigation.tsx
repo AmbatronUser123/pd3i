@@ -18,7 +18,7 @@ export function MultiStepNavigation({
   onStepChange,
   onNext,
   onPrevious,
-  canProceed
+  canProceed: _canProceed
 }: MultiStepNavigationProps) {
   const progress = ((currentStep + 1) / sections.length) * 100;
   const currentSection = sections[currentStep];
@@ -53,7 +53,7 @@ export function MultiStepNavigation({
         </div>
 
         {/* Step Navigator */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 justify-between md:justify-start flex-wrap">
           <Button
             variant="outline"
             size="sm"

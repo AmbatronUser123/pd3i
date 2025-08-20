@@ -7,7 +7,7 @@ import { supabase } from './client';
 export async function testSupabaseConnection() {
   try {
     // Simple query to test the connection
-    const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+    const { error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
     
     if (error) {
       console.error('Supabase connection test failed:', error);
@@ -44,4 +44,23 @@ export function getSupabaseInfo() {
     authEnabled: true,
     storageEnabled: true
   };
+}
+
+/**
+ * Test schema compatibility with kasus_mr01
+ * Check if essential columns exist
+ */
+export async function testKasusMR01Schema() {
+  try {
+    const { data, error } = await supabase
+      .from('kasus_mr01')
+      .select('id, pasien_nama, pasien_tgl_lahir, pasien_umur, pasien_jk')
+      .limit(1);
+    if (error) {
+      return { success: false, message: `Schema check failed: ${error.message}` };
+    }
+    return { success: true, message: 'Schema OK' };
+  } catch (e: any) {
+    return { success: false, message: `Schema check error: ${e.message}` };
+  }
 }

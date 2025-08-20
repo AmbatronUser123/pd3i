@@ -70,18 +70,8 @@ export function WeeklyReportPage({ user, onBack, isOnline }: WeeklyReportPagePro
   const klbStatus = totalCases > 20 ? 'KLB' : 'Normal';
 
   return (
-    <div className="min-h-screen bg-background pt-6">
-      {/* Online/Offline Status */}
-      <div className={`fixed top-0 left-0 right-0 z-50 px-4 py-2 text-center text-sm ${
-        isOnline ? 'bg-primary text-primary-foreground' : 'bg-destructive text-destructive-foreground'
-      }`}>
-        <div className="flex items-center justify-center gap-2">
-          {isOnline ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-          {isOnline ? 'Online - Data akan tersinkronisasi' : 'Offline - Data tersimpan lokal'}
-        </div>
-      </div>
-
-      <div className="pt-12">
+    <div className="min-h-screen bg-background">
+      <div className="pt-6 max-w-5xl mx-auto">
         {/* Header */}
         <div className="bg-card shadow-sm border-b border-border">
           <div className="p-4">
@@ -95,15 +85,20 @@ export function WeeklyReportPage({ user, onBack, isOnline }: WeeklyReportPagePro
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="flex-1">
-                <h1 className="text-lg font-semibold flex items-center gap-2">
+                <h1 className="text-lg font-semibold flex items-center gap-2 text-black">
                   <BarChart3 className="w-5 h-5" />
                   Rekap Mingguan
                 </h1>
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <p className="text-sm flex items-center gap-1 text-[#607D8B]">
                   <Building2 className="w-4 h-4" />
                   {user.puskesmas}
                 </p>
               </div>
+            </div>
+            {/* Status Card */}
+            <div className="rounded-xl shadow-md p-4 border border-transparent bg-[#C8E6C9] flex items-center gap-3 mb-4">
+              {isOnline ? <Wifi className="w-5 h-5 text-[#4CAF50]" /> : <WifiOff className="w-5 h-5 text-red-500" />}
+              <span className="text-sm text-black">Status: {isOnline ? 'Online – Data akan tersinkron otomatis' : 'Offline – Data tersimpan lokal'}</span>
             </div>
 
             {/* Filters */}

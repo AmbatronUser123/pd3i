@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
@@ -28,9 +28,6 @@ export function FormFieldRenderer({
   formData, 
   error 
 }: FormFieldRendererProps) {
-  const [date, setDate] = useState<Date | undefined>(
-    value ? new Date(value) : undefined
-  );
 
   // Check if field should be shown based on dependencies
   const shouldShow = () => {
@@ -40,9 +37,6 @@ export function FormFieldRenderer({
     
     // Handle different dependency scenarios
     switch (field.dependsOn) {
-      case 'Kasus_KLB':
-        return dependentValue === 'Ya';
-      
       case 'Demam':
         return dependentValue === 'Ya' && field.id === 'Tanggal_mulai_demam';
       
@@ -61,9 +55,6 @@ export function FormFieldRenderer({
       case 'Lainnya':
         return dependentValue === 'Ya' && field.id === 'Sebutkan_gejala_lainnya';
       
-      case 'Apakah_kasus_dirawat_di_RS':
-        return dependentValue === 'Ya';
-      
       case 'Imunisasi_campak_MR_9_bulan':
       case 'Imunisasi_campak_MR_18_bulan':
       case 'Imunisasi_campak_MR_kelas_1_SD':
@@ -74,15 +65,6 @@ export function FormFieldRenderer({
       case 'Ada_anggota_sakit_sama':
         return dependentValue === 'Ya' && field.id === 'Jumlah';
       
-      case 'Berpergian_1_bulan_terakhir':
-        return dependentValue === 'Ya';
-      
-      case 'Spesimen_darah_diambil':
-        return dependentValue === 'Ya';
-      
-      case 'Spesimen_lain_diambil':
-        return dependentValue === 'Ya';
-      
       default:
         return dependentValue === 'Ya';
     }
@@ -92,6 +74,9 @@ export function FormFieldRenderer({
   useEffect(() => {
     if (field.autoCalculate && field.id === 'Umur' && formData.Tanggal_lahir) {
       const birthDate = new Date(formData.Tanggal_lahir);
+      if (isNaN(birthDate.getTime())) {
+        return; // Do not calculate if the date is invalid
+      }
       const today = new Date();
       let age = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -111,7 +96,6 @@ export function FormFieldRenderer({
   }
 
   const handleDateChange = (selectedDate: Date | undefined) => {
-    setDate(selectedDate);
     if (selectedDate) {
       onChange(format(selectedDate, 'yyyy-MM-dd'));
     } else {
@@ -201,7 +185,6 @@ export function FormFieldRenderer({
                 <RadioGroupItem 
                   value={option} 
                   id={`${field.id}-${option}`}
-                  name={field.id}
                   className="min-w-[20px] min-h-[20px]"
                 />
                 <Label 
@@ -215,7 +198,10 @@ export function FormFieldRenderer({
           </RadioGroup>
         );
 
-      case 'date':
+      case 'date': {
+        const date = value ? new Date(value) : undefined;
+        const isValidDate = date && !isNaN(date.getTime());
+
         return (
           <Popover>
             <PopoverTrigger asChild>
@@ -228,21 +214,22 @@ export function FormFieldRenderer({
                 } ${!value ? 'text-muted-foreground' : ''}`}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {value ? format(new Date(value), 'dd MMMM yyyy', { locale: idLocale }) : 'Pilih tanggal'}
+                {isValidDate ? format(date, 'dd MMMM yyyy', { locale: idLocale }) : 'Pilih tanggal'}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={date}
+                selected={isValidDate ? date : undefined}
                 onSelect={handleDateChange}
-                disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
+                disabled={(d) => d > new Date() || d < new Date('1900-01-01')}
                 initialFocus
                 locale={idLocale}
               />
             </PopoverContent>
           </Popover>
         );
+      }
 
       case 'readonly':
         return (

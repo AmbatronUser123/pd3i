@@ -26,12 +26,14 @@ import {
   updateSectionCompletion,
   loadExistingData,
   saveDraft,
+  shouldShowField,
   saveDraftToLocalStorage,
   submitForm,
   submitFormToLocalStorage
 } from './FormPencatatanKasus/utils';
 import { FormFieldRenderer } from './FormPencatatanKasus/FormFieldRenderer';
 import { MultiStepNavigation } from './FormPencatatanKasus/MultiStepNavigation';
+import { testSupabaseConnection, testKasusMR01Schema } from '../utils/supabase/test-connection';
 
 interface FormPencatatanKasusPageProps {
   disease: string;
@@ -46,7 +48,7 @@ export function FormPencatatanKasusPage({
   disease, 
   form, 
   caseId, 
-  onNavigate, 
+  onNavigate: _onNavigate, 
   onBack, 
   isOnline 
 }: FormPencatatanKasusPageProps) {
@@ -58,6 +60,10 @@ export function FormPencatatanKasusPage({
   const [currentCaseId, setCurrentCaseId] = useState<string | undefined>(caseId);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [connStatus, setConnStatus] = useState<string>('Form ini hanya akan menggunakan field yang valid sesuai dengan struktur tabel kasus_mr01 di database.');
+  const [schemaStatus, setSchemaStatus] = useState<string>('');
+  const [isTestingConn, setIsTestingConn] = useState(false);
+  const [isTestingSchema, setIsTestingSchema] = useState(false);
 
   // Auto-save interval
   useEffect(() => {
@@ -138,15 +144,8 @@ export function FormPencatatanKasusPage({
     
     // Validate only visible required fields in current section
     currentSection.fields.forEach(field => {
-      if (field.required) {
-        // Check if field should be shown
-        let shouldShow = true;
-        if (field.dependsOn) {
-          const dependentValue = formData[field.dependsOn];
-          shouldShow = dependentValue === 'Ya';
-        }
-        
-        if (shouldShow && (!formData[field.id] || formData[field.id] === '')) {
+      if (field.required && shouldShowField(field, formData)) {
+        if (!formData[field.id] || formData[field.id] === '') {
           sectionErrors[field.id] = `${field.label} harus diisi`;
         }
       }
@@ -207,6 +206,38 @@ export function FormPencatatanKasusPage({
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    try {
+      setIsTestingConn(true);
+      const res = await testSupabaseConnection();
+      if (res.success) {
+        setConnStatus('Koneksi berhasil.');
+        toast.success('Koneksi Supabase OK');
+      } else {
+        setConnStatus(res.message || 'Koneksi gagal.');
+        toast.error('Koneksi Supabase gagal');
+      }
+    } finally {
+      setIsTestingConn(false);
+    }
+  };
+
+  const handleTestSchema = async () => {
+    try {
+      setIsTestingSchema(true);
+      const res = await testKasusMR01Schema();
+      if (res.success) {
+        setSchemaStatus('Schema OK');
+        toast.success('Schema kasus_mr01 sesuai');
+      } else {
+        setSchemaStatus(res.message || 'Schema bermasalah');
+        toast.error('Schema kasus_mr01 bermasalah');
+      }
+    } finally {
+      setIsTestingSchema(false);
     }
   };
 
@@ -294,7 +325,7 @@ export function FormPencatatanKasusPage({
         </div>
       </div>
 
-      <div className="pt-12">
+      <div className="pt-12 max-w-5xl mx-auto">
         {/* Header */}
         <div className="bg-card shadow-sm border-b border-border sticky top-12 z-40">
           <div className="p-4">
@@ -339,6 +370,31 @@ export function FormPencatatanKasusPage({
           onPrevious={handlePrevious}
           canProceed={!hasErrors}
         />
+
+        {/* Status Koneksi Database */}
+        <div className="p-4">
+          <div className="spasi-card">
+            <h3 className="font-medium mb-3">Status Koneksi Database</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-center justify-between gap-3 bg-muted/40 rounded-md p-3">
+                <div className="text-sm">Koneksi Database</div>
+                <Button variant="outline" size="sm" onClick={handleTestConnection} disabled={isTestingConn}>
+                  {isTestingConn ? 'Menguji...' : 'Test Koneksi'}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between gap-3 bg-muted/40 rounded-md p-3">
+                <div className="text-sm">Schema Database</div>
+                <Button variant="outline" size="sm" onClick={handleTestSchema} disabled={isTestingSchema}>
+                  {isTestingSchema ? 'Mengecek...' : 'Test Schema'}
+                </Button>
+              </div>
+            </div>
+            <div className="mt-3 text-sm text-muted-foreground bg-primary/5 border border-primary/20 rounded-md p-3">
+              {connStatus}
+              {schemaStatus && <div className="mt-1">{schemaStatus}</div>}
+            </div>
+          </div>
+        </div>
 
         {/* Current Section Form */}
         <div className="p-4 space-y-6">

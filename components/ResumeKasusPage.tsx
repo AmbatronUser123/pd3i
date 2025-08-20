@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Page } from '../App';
+import { Page, User } from '../App';
 import { 
   ArrowLeft, 
   Plus, 
@@ -9,7 +9,7 @@ import {
   Trash2, 
   Search,
   Calendar,
-  User,
+  User as UserIcon,
   UserCheck,
   Clock,
   CheckCircle2,
@@ -22,6 +22,7 @@ import {
 import { Input } from './ui/input';
 
 interface ResumeKasusPageProps {
+  user: User;
   disease: string;
   form: string;
   onNavigate: (page: Page, options?: { disease?: string; form?: string; caseId?: string }) => void;
@@ -55,7 +56,7 @@ const formNames: Record<string, string> = {
   'hasil-lab': 'Hasil Lab - Hasil Laboratorium',
 };
 
-export function ResumeKasusPage({ disease, form, onNavigate, onBack, isOnline }: ResumeKasusPageProps) {
+export function ResumeKasusPage({ user, disease, form, onNavigate, onBack, isOnline }: ResumeKasusPageProps) {
 
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -104,6 +105,51 @@ export function ResumeKasusPage({ disease, form, onNavigate, onBack, isOnline }:
     }));
     setCases(mappedCases);
   }, [disease, form]);
+
+  // Tarik data dari Supabase untuk user saat ini dan gabungkan
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchFromSupabase() {
+      try {
+        const { kasusMR01Operations } = await import('../utils/supabase/client');
+        const rows = await kasusMR01Operations.getByUser(user.id);
+        if (!rows) return;
+        const filtered = rows.filter((r: any) => r.disease === disease && r.form === form);
+        const mapped: CaseItem[] = filtered.map((r: any) => ({
+          id: r.id,
+          patientName: r.pasien_nama || '-',
+          submissionDate: r.updated_at || r.created_at || new Date().toISOString(),
+          status: (r.status as any) || 'submitted',
+          synced: true,
+        }));
+        if (!cancelled && mapped.length > 0) {
+          setCases(prev => {
+            const byId: Record<string, CaseItem> = {};
+            [...mapped, ...prev].forEach(it => { byId[it.id] = it; });
+            return Object.values(byId);
+          });
+        }
+      } catch (e) {
+        // silent
+      }
+    }
+    fetchFromSupabase();
+    return () => { cancelled = true; };
+  }, [user.id, disease, form]);
+
+  const handleRefresh = async () => {
+    const { kasusMR01Operations } = await import('../utils/supabase/client');
+    const rows = await kasusMR01Operations.getByUser(user.id);
+    const filtered = (rows || []).filter((r: any) => r.disease === disease && r.form === form);
+    const mapped: CaseItem[] = filtered.map((r: any) => ({
+      id: r.id,
+      patientName: r.pasien_nama || '-',
+      submissionDate: r.updated_at || r.created_at || new Date().toISOString(),
+      status: (r.status as any) || 'submitted',
+      synced: true,
+    }));
+    setCases(mapped);
+  };
 
   useEffect(() => {
     const filtered = cases.filter(case_ =>
@@ -184,6 +230,7 @@ export function ResumeKasusPage({ disease, form, onNavigate, onBack, isOnline }:
                 <h1 className="text-lg font-semibold">{diseaseNames[disease]}</h1>
                 <p className="text-sm text-muted-foreground">{formNames[form]}</p>
               </div>
+              <Button variant="outline" size="sm" onClick={handleRefresh}>Refresh</Button>
             </div>
 
             {/* Search */}
@@ -206,7 +253,7 @@ export function ResumeKasusPage({ disease, form, onNavigate, onBack, isOnline }:
               <Card className="p-8 text-center">
                 <div className="text-muted-foreground">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                    <User className="w-8 h-8 opacity-50" />
+                    <UserIcon className="w-8 h-8 opacity-50" />
                   </div>
                   <p className="text-lg mb-2">Belum ada kasus yang tercatat</p>
                   <p className="text-sm">Tekan tombol + untuk menambah kasus baru</p>
@@ -299,10 +346,21 @@ export function ResumeKasusPage({ disease, form, onNavigate, onBack, isOnline }:
         {/* Floating Action Button */}
         <button
           onClick={handleNewCase}
-          className="spasi-fab group"
           aria-label="Tambah kasus baru"
+          className="
+            fixed z-50
+            bottom-[calc(env(safe-area-inset-bottom)+20px)]
+            right-[calc(env(safe-area-inset-right)+20px)]
+            w-14 h-14 rounded-full
+            bg-green-500 text-white
+            shadow-[0_12px_24px_rgba(34,197,94,0.35)]
+            flex items-center justify-center
+            transition-transform
+            hover:bg-green-600 active:scale-95
+            focus:outline-none focus:ring-4 focus:ring-green-200
+          "
         >
-          <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />
+          <Plus className="w-6 h-6" />
         </button>
       </div>
     </div>

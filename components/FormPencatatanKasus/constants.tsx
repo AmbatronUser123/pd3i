@@ -6,9 +6,7 @@ import {
   Syringe,
   Globe,
   FlaskConical,
-  FileCheck,
-  HelpCircle,
-  MapPin
+  FileCheck
 } from 'lucide-react';
 
 export interface FormField {

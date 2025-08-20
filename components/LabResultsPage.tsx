@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { useState, useEffect, type ChangeEvent } from 'react';
+import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -132,13 +132,18 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
   }, []);
 
   useEffect(() => {
-    const filtered = labResults.filter(result =>
+    const filtered = labResults.filter((result: LabResult) =>
       result.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       result.caseId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       result.laboratory.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredResults(filtered);
   }, [labResults, searchTerm]);
+
+  const handleNewResultChange = (field: keyof NewLabResult, value: string) => {
+    setNewResult((prev: NewLabResult) => ({ ...prev, [field]: value }));
+  };
+
 
   const handleAddResult = () => {
     if (!newResult.caseId || !newResult.patientName || !newResult.specimenType || 
@@ -162,7 +167,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
       synced: false
     };
 
-    setLabResults(prev => [result, ...prev]);
+    setLabResults((prev: LabResult[]) => [result, ...prev]);
     setNewResult({
       caseId: '',
       patientName: '',
@@ -181,7 +186,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
 
   const handleDeleteResult = (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus hasil lab ini?')) {
-      setLabResults(prev => prev.filter(r => r.id !== id));
+      setLabResults((prev: LabResult[]) => prev.filter((r: LabResult) => r.id !== id));
       localStorage.removeItem(`lab_result_${id}`);
     }
   };
@@ -217,6 +222,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
           </Badge>
         );
     }
+    return null;
   };
 
   return (
@@ -260,7 +266,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                 <Input
                   placeholder="Cari nama pasien, ID kasus, atau laboratorium..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -291,7 +297,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                           <Input
                             id="caseId"
                             value={newResult.caseId}
-                            onChange={(e) => setNewResult(prev => ({...prev, caseId: e.target.value}))}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleNewResultChange('caseId', e.target.value)}
                             placeholder="CR-001"
                             className="spasi-input"
                           />
@@ -303,7 +309,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                           <Input
                             id="patientName"
                             value={newResult.patientName}
-                            onChange={(e) => setNewResult(prev => ({...prev, patientName: e.target.value}))}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleNewResultChange('patientName', e.target.value)}
                             placeholder="Ahmad Santoso"
                             className="spasi-input"
                           />
@@ -315,7 +321,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                           <Label>
                             Jenis Spesimen <span className="text-destructive">*</span>
                           </Label>
-                          <Select value={newResult.specimenType} onValueChange={(val) => setNewResult(prev => ({...prev, specimenType: val}))}>
+                          <Select value={newResult.specimenType} onValueChange={(val: string) => handleNewResultChange('specimenType', val)}>
                             <SelectTrigger className="spasi-input">
                               <SelectValue placeholder="Pilih..." />
                             </SelectTrigger>
@@ -330,7 +336,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                           <Label>
                             Jenis Pemeriksaan <span className="text-destructive">*</span>
                           </Label>
-                          <Select value={newResult.testType} onValueChange={(val) => setNewResult(prev => ({...prev, testType: val}))}>
+                          <Select value={newResult.testType} onValueChange={(val: string) => handleNewResultChange('testType', val)}>
                             <SelectTrigger className="spasi-input">
                               <SelectValue placeholder="Pilih..." />
                             </SelectTrigger>
@@ -352,7 +358,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                             id="collectionDate"
                             type="date"
                             value={newResult.collectionDate}
-                            onChange={(e) => setNewResult(prev => ({...prev, collectionDate: e.target.value}))}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleNewResultChange('collectionDate', e.target.value)}
                             className="spasi-input"
                           />
                         </div>
@@ -362,7 +368,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                             id="examinationDate"
                             type="date"
                             value={newResult.examinationDate}
-                            onChange={(e) => setNewResult(prev => ({...prev, examinationDate: e.target.value}))}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleNewResultChange('examinationDate', e.target.value)}
                             className="spasi-input"
                           />
                         </div>
@@ -373,8 +379,8 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                           Hasil Pemeriksaan <span className="text-destructive">*</span>
                         </Label>
                         <RadioGroup 
-                          value={newResult.result} 
-                          onValueChange={(val) => setNewResult(prev => ({...prev, result: val}))}
+                          value={newResult.result}
+                          onValueChange={(val: string) => handleNewResultChange('result', val)}
                         >
                           <div className="grid grid-cols-2 gap-2">
                             {resultTypes.map(type => (
@@ -394,7 +400,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                         <Input
                           id="laboratory"
                           value={newResult.laboratory}
-                          onChange={(e) => setNewResult(prev => ({...prev, laboratory: e.target.value}))}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => handleNewResultChange('laboratory', e.target.value)}
                           placeholder="Lab Dinkes Kota"
                           className="spasi-input"
                         />
@@ -405,7 +411,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                         <Textarea
                           id="notes"
                           value={newResult.notes}
-                          onChange={(e) => setNewResult(prev => ({...prev, notes: e.target.value}))}
+                          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => handleNewResultChange('notes', e.target.value)}
                           placeholder="Catatan hasil pemeriksaan..."
                           className="spasi-input min-h-[80px]"
                         />
@@ -469,7 +475,7 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredResults.map((result) => (
+                    {filteredResults.map((result: LabResult) => (
                       <TableRow 
                         key={result.id}
                         className={result.result === 'Positif' ? 'bg-red-50 border-red-100' : ''}
@@ -542,19 +548,19 @@ export function LabResultsPage({ user, onBack, isOnline }: LabResultsPageProps) 
                 </div>
                 <div className="bg-white rounded-lg p-3 text-center">
                   <div className="text-lg font-bold text-red-600">
-                    {labResults.filter(r => r.result === 'Positif').length}
+                    {labResults.filter((r: LabResult) => r.result === 'Positif').length}
                   </div>
                   <div className="text-xs text-muted-foreground">Positif</div>
                 </div>
                 <div className="bg-white rounded-lg p-3 text-center">
                   <div className="text-lg font-bold text-green-600">
-                    {labResults.filter(r => r.result === 'Negatif').length}
+                    {labResults.filter((r: LabResult) => r.result === 'Negatif').length}
                   </div>
                   <div className="text-xs text-muted-foreground">Negatif</div>
                 </div>
                 <div className="bg-white rounded-lg p-3 text-center">
                   <div className="text-lg font-bold text-orange-600">
-                    {labResults.filter(r => !r.synced).length}
+                    {labResults.filter((r: LabResult) => !r.synced).length}
                   </div>
                   <div className="text-xs text-muted-foreground">Belum Sync</div>
                 </div>

@@ -1,6 +1,5 @@
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { StatusIndicator } from './StatusIndicator';
 import { User, Page } from '../App';
 import { 
   Activity, 
@@ -18,7 +17,9 @@ import {
   Zap,
   Shield,
   LogOut,
-  MapPin
+  MapPin,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
 interface DashboardPageProps {
@@ -33,43 +34,43 @@ const diseases = [
     id: 'campak-rubela', 
     name: 'Campak-Rubela', 
     icon: Heart, 
-    color: 'bg-red-50 border-red-100 hover:bg-red-100',
-    iconColor: 'text-red-500'
+    bgHex: '#FFEBEE',
+    iconHex: '#E53935'
   },
   { 
     id: 'difteri', 
     name: 'Difteri', 
     icon: Thermometer, 
-    color: 'bg-orange-50 border-orange-100 hover:bg-orange-100',
-    iconColor: 'text-orange-500'
+    bgHex: '#FFF3E0',
+    iconHex: '#FB8C00'
   },
   { 
     id: 'pertusis', 
     name: 'Pertusis', 
     icon: Waves, 
-    color: 'bg-blue-50 border-blue-100 hover:bg-blue-100',
-    iconColor: 'text-blue-500'
+    bgHex: '#E3F2FD',
+    iconHex: '#1E88E5'
   },
   { 
     id: 'tetanus', 
     name: 'Tetanus', 
     icon: Zap, 
-    color: 'bg-yellow-50 border-yellow-100 hover:bg-yellow-100',
-    iconColor: 'text-yellow-600'
+    bgHex: '#FFFDE7',
+    iconHex: '#F9A825'
   },
   { 
     id: 'polio', 
     name: 'Polio', 
     icon: UserCircle, 
-    color: 'bg-purple-50 border-purple-100 hover:bg-purple-100',
-    iconColor: 'text-purple-500'
+    bgHex: '#F3E5F5',
+    iconHex: '#8E24AA'
   },
   { 
     id: 'hepatitis', 
     name: 'Hepatitis', 
     icon: Shield, 
-    color: 'bg-green-50 border-green-100 hover:bg-green-100',
-    iconColor: 'text-green-600'
+    bgHex: '#E8F5E9',
+    iconHex: '#43A047'
   },
 ];
 
@@ -79,8 +80,8 @@ const shortcuts = [
     name: 'Hasil Lab', 
     icon: Search, 
     description: 'Kelola hasil laboratorium',
-    color: 'bg-cyan-50 border-cyan-100 hover:bg-cyan-100',
-    iconColor: 'text-cyan-600',
+    bgHex: '#E0F7FA',
+    iconHex: '#039BE5',
     page: 'lab-results' as Page
   },
   { 
@@ -88,8 +89,8 @@ const shortcuts = [
     name: 'Pedoman Surveilans', 
     icon: FileText, 
     description: 'Panduan surveilans penyakit',
-    color: 'bg-indigo-50 border-indigo-100 hover:bg-indigo-100',
-    iconColor: 'text-indigo-600',
+    bgHex: '#EDE7F6',
+    iconHex: '#5E35B1',
     page: 'surveillance-guidelines' as Page
   },
 ];
@@ -108,18 +109,18 @@ export function DashboardPage({ user, onNavigate, onLogout, isOnline }: Dashboar
   };
 
   return (
-    <div className="min-h-screen bg-background pt-11">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-card shadow-sm border-b border-border">
         <div className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-primary-foreground" />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#4CAF50] text-white">
+                <Building2 className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold">{user.puskesmas}</h1>
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <h1 className="text-lg font-semibold text-black">{user.puskesmas}</h1>
+                <p className="text-sm flex items-center gap-1 text-[#607D8B]">
                   <MapPin className="w-3 h-3" />
                   {user.location}
                 </p>
@@ -130,7 +131,7 @@ export function DashboardPage({ user, onNavigate, onLogout, isOnline }: Dashboar
                 onClick={handleWeeklyReport}
                 className="p-3 hover:bg-muted rounded-lg transition-colors"
               >
-                <TrendingUp className="w-6 h-6 text-accent" />
+                <TrendingUp className="w-6 h-6 text-blue-500" />
               </button>
               <Button
                 variant="ghost"
@@ -146,39 +147,51 @@ export function DashboardPage({ user, onNavigate, onLogout, isOnline }: Dashboar
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 pt-6 max-w-5xl mx-auto">
         {/* Welcome message */}
-        <div className="p-4">
-          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+        <div className="px-4">
+          <div className="rounded-xl shadow-md p-4 border border-transparent bg-[#E8F5E9]">
             <div className="flex items-center gap-3">
-              <Stethoscope className="w-6 h-6 text-primary" />
+              <Stethoscope className="w-6 h-6 text-[#4CAF50]" />
               <div>
-                <p className="font-medium">Selamat datang, {user.username}</p>
-                <p className="text-sm text-muted-foreground">Pilih penyakit untuk mulai pencatatan kasus</p>
+                <p className="font-medium text-black">Selamat datang, {user.username}</p>
+                <p className="text-sm text-[#607D8B]">Pilih penyakit untuk mulai pencatatan kasus</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Status Indicator - positioned before content */}
-        <StatusIndicator isOnline={isOnline} />
+        {/* Online Status Card */}
+        <div className="px-4">
+          <div className="rounded-xl shadow-md p-4 border border-transparent bg-[#C8E6C9] flex items-center gap-3">
+            {isOnline ? (
+              <Wifi className="w-5 h-5 text-[#4CAF50]" />
+            ) : (
+              <WifiOff className="w-5 h-5 text-red-500" />
+            )}
+            <span className="text-sm text-black">
+              Status: {isOnline ? 'Online – Data akan tersinkron otomatis' : 'Offline – Data tersimpan lokal'}
+            </span>
+          </div>
+        </div>
 
         <div className="px-4 space-y-6">
           {/* Disease Cards */}
           <div>
-            <h2 className="text-lg font-semibold mb-4">Penyakit LP3I</h2>
+            <h2 className="text-lg font-bold mb-4 text-black">Penyakit LP3I</h2>
             <div className="grid grid-cols-2 gap-4">
               {diseases.map((disease) => (
-                <Card 
-                  key={disease.id} 
-                  className={`cursor-pointer transition-all hover:shadow-lg active:scale-95 ${disease.color}`}
+                <Card
+                  key={disease.id}
+                  className={`cursor-pointer transition-all hover:shadow-lg active:scale-95 rounded-xl border-0`}
                   onClick={() => handleDiseaseClick(disease.id)}
+                  style={{ backgroundColor: disease.bgHex }}
                 >
                   <CardContent className="p-4 text-center">
                     <div className="mb-3">
-                      <disease.icon className={`w-8 h-8 mx-auto ${disease.iconColor}`} />
+                      <disease.icon className="w-8 h-8 mx-auto" style={{ color: disease.iconHex }} />
                     </div>
-                    <h3 className="font-medium text-sm">{disease.name}</h3>
+                    <h3 className="font-bold text-sm text-black">{disease.name}</h3>
                   </CardContent>
                 </Card>
               ))}
@@ -187,22 +200,23 @@ export function DashboardPage({ user, onNavigate, onLogout, isOnline }: Dashboar
 
           {/* Surveillance Features - Updated label and increased spacing */}
           <div className="pt-4">
-            <h2 className="text-lg font-semibold mb-4">Fitur Surveilans</h2>
+            <h2 className="text-lg font-bold mb-4 text-black">Fitur Surveilans</h2>
             <div className="space-y-3">
               {shortcuts.map((shortcut) => (
-                <Card 
-                  key={shortcut.id} 
-                  className={`cursor-pointer transition-all hover:shadow-md active:scale-95 ${shortcut.color}`}
+                <Card
+                  key={shortcut.id}
+                  className={`cursor-pointer transition-all hover:shadow-md active:scale-95 rounded-xl border-0`}
                   onClick={() => handleShortcutClick(shortcut.page)}
+                  style={{ backgroundColor: shortcut.bgHex }}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white/60 rounded-lg flex items-center justify-center">
-                        <shortcut.icon className={`w-6 h-6 ${shortcut.iconColor}`} />
+                        <shortcut.icon className="w-6 h-6" style={{ color: shortcut.iconHex }} />
                       </div>
                       <div>
-                        <h3 className="font-medium">{shortcut.name}</h3>
-                        <p className="text-sm text-muted-foreground">{shortcut.description}</p>
+                        <h3 className="font-bold text-black">{shortcut.name}</h3>
+                        <p className="text-sm" style={{ color: '#607D8B' }}>{shortcut.description}</p>
                       </div>
                     </div>
                   </CardContent>

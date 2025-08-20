@@ -64,7 +64,7 @@ export function updateSectionCompletion(
 }
 
 // Helper function to determine if a field should be shown based on dependencies
-function shouldShowField(field: any, formData: FormData): boolean {
+export function shouldShowField(field: any, formData: FormData): boolean {
   if (!field.dependsOn) return true;
   
   const dependentValue = formData[field.dependsOn];
@@ -145,7 +145,7 @@ export function validateFormData(formData: FormData, sections: FormSection[]): R
       const value = formData[field.id];
       if (value && typeof value === 'string' && value.trim() !== '') {
         // Phone number validation
-        if (field.type === 'tel' && !/^[\d\s\-\+\(\)]+$/.test(value)) {
+        if (field.type === 'tel' && !/^[\d\s\-+()]+$/.test(value)) {
           errors[field.id] = 'Nomor telepon tidak valid';
         }
 

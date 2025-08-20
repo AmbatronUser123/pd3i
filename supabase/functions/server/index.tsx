@@ -50,12 +50,13 @@ app.post("/make-server-b2c9964a/kasus", async (c) => {
         await kv.set(key, value);
         return c.json({ success: true });
 
-      case 'get':
+      case 'get': {
         if (!key) {
           return c.json({ error: "Key is required for get operation" }, 400);
         }
         const data = await kv.get(key);
         return c.json({ data });
+      }
 
       case 'del':
         if (!key) {
@@ -71,12 +72,13 @@ app.post("/make-server-b2c9964a/kasus", async (c) => {
         await kv.mset(keys, values);
         return c.json({ success: true });
 
-      case 'mget':
+      case 'mget': {
         if (!keys || !Array.isArray(keys)) {
           return c.json({ error: "Keys array is required for mget operation" }, 400);
         }
         const multiData = await kv.mget(keys);
         return c.json({ data: multiData });
+      }
 
       case 'mdel':
         if (!keys || !Array.isArray(keys)) {
@@ -85,12 +87,13 @@ app.post("/make-server-b2c9964a/kasus", async (c) => {
         await kv.mdel(keys);
         return c.json({ success: true });
 
-      case 'getByPrefix':
+      case 'getByPrefix': {
         if (!prefix) {
           return c.json({ error: "Prefix is required for getByPrefix operation" }, 400);
         }
         const prefixData = await kv.getByPrefix(prefix);
         return c.json({ data: prefixData });
+      }
 
       default:
         return c.json({ error: "Invalid action. Supported actions: set, get, del, mset, mget, mdel, getByPrefix" }, 400);

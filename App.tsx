@@ -125,15 +125,18 @@ export default function App() {
       case "disease-submenu":
         return (
           <DiseaseSubmenuPage
+            user={user!}
             disease={navigation.selectedDisease!}
             onNavigate={navigate}
             onBack={() => navigate("dashboard")}
+            onLogout={handleLogout}
             isOnline={isOnline}
           />
         );
       case "resume-kasus":
         return (
           <ResumeKasusPage
+            user={user!}
             disease={navigation.selectedDisease!}
             form={navigation.selectedForm!}
             onNavigate={navigate}

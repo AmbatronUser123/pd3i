@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Label } from '../ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { FormSection as FormSectionType } from './constants';
@@ -41,17 +40,13 @@ export function FormSection({ section, formData, onFieldChange, onToggle }: Form
           <CardContent className="pt-0">
             <div className="space-y-4">
               {section.fields.map((field) => (
-                <div key={field.id} className="space-y-2">
-                  <Label htmlFor={field.id} className="flex items-center gap-1">
-                    {field.label}
-                    {field.required && <span className="text-destructive">*</span>}
-                  </Label>
-                  <FormFieldRenderer
-                    field={field}
-                    value={formData[field.id]}
-                    onChange={onFieldChange}
-                  />
-                </div>
+                <FormFieldRenderer
+                  key={field.id}
+                  field={field}
+                  value={formData[field.id]}
+                  onChange={(value) => onFieldChange(field.id, value)}
+                  formData={formData}
+                />
               ))}
             </div>
           </CardContent>
